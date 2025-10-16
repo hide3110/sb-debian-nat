@@ -3,6 +3,7 @@
 set -e
 
 # 设置默认值
+SB_VERSION=${SB_VERSION:-1.11.15}
 TR_PORT=${TR_PORT:-65031}
 VL_PORT=${VL_PORT:-65032}
 VL_SNI=${VL_SNI:-www.cityofrc.us}
@@ -10,6 +11,7 @@ VL_SNI=${VL_SNI:-www.cityofrc.us}
 echo "========================================="
 echo "sing-box 安装脚本"
 echo "========================================="
+echo "sing-box 版本: $SB_VERSION"
 echo "Trojan 端口: $TR_PORT"
 echo "VLESS 端口: $VL_PORT"
 echo "VLESS SNI: $VL_SNI"
@@ -21,9 +23,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 步骤1: 安装 sing-box 1.11.15
-echo "正在安装 sing-box 1.11.15..."
-curl -fsSL https://sing-box.app/install.sh | sh -s -- --version 1.11.15
+# 步骤1: 安装 sing-box
+echo "正在安装 sing-box ${SB_VERSION}..."
+curl -fsSL https://sing-box.app/install.sh | sh -s -- --version ${SB_VERSION}
 
 # 步骤2: 创建配置文件
 echo "正在创建配置文件..."
