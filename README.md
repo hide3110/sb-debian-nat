@@ -8,9 +8,9 @@
 TR_PORT=8443 VL_PORT=9443 VL_SNI=www.microsoft.com bash <(curl -fsSL https://raw.githubusercontent.com/hide3110/sb-debian-nat/main/install.sh)
 ```
 ### 指定版本号
-可以在脚本bash最后添加sing-box版本号，如1.11.4
+可以在脚本最后添加sing-box版本号，如1.11.4
 ```
-TR_PORT=8443 VL_PORT=9443 VL_SNI=www.microsoft.com bash -s -- 1.11.4 < <(curl -fsSL https://raw.githubusercontent.com/hide3110/sb-debian-nat/main/install.sh)
+TR_PORT=8443 VL_PORT=9443 VL_SNI=www.microsoft.com bash <(curl -fsSL https://raw.githubusercontent.com/hide3110/sb-debian-nat/main/install.sh) 1.11.4
 ```
 
 ## 详细说明
