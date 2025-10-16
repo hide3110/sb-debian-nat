@@ -2,8 +2,8 @@
 
 set -e
 
-# 设置默认值
-SB_VERSION=${SB_VERSION:-1.11.15}
+# 设置默认值（支持位置参数和环境变量）
+SB_VERSION=${1:-${SB_VERSION:-1.11.15}}  # 优先使用 $1，然后是环境变量，最后是默认值
 TR_PORT=${TR_PORT:-65031}
 VL_PORT=${VL_PORT:-65032}
 VL_SNI=${VL_SNI:-www.cityofrc.us}
