@@ -1,210 +1,163 @@
 #!/bin/bash
 
-# Shadowsocks (libev & rust) + simple-obfs 一键卸载脚本
-# 适用于 Debian / Ubuntu
-# 使用方法: bash uninstall.sh
-
 set -e
 
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+echo "========================================="
+echo "sing-box 卸载脚本"
+echo "========================================="
 
-# 打印函数
-print_info() { echo -e "${GREEN}[信息]${NC} $1"; }
-print_warn() { echo -e "${YELLOW}[警告]${NC} $1"; }
-print_error() { echo -e "${RED}[错误]${NC} $1"; }
-print_success() { echo -e "${GREEN}[成功]${NC} $1"; }
-print_step() { echo -e "${BLUE}[步骤]${NC} $1"; }
-
-# 检查 root 权限
-if [ "$(id -u)" -ne 0 ]; then
-    print_error "此脚本必须以 root 身份运行"
+# 检查是否为root用户
+if [ "$EUID" -ne 0 ]; then 
+    echo "[ERROR] 请使用 root 权限运行此脚本"
     exit 1
 fi
 
-print_warn "=== Shadowsocks 卸载脚本 ==="
-echo "开始卸载以下组件："
-echo "  - shadowsocks-libev"
-echo "  - shadowsocks-rust"
-echo "  - simple-obfs"
-echo "  - 相关配置文件和服务"
-echo
-
-# 步骤 1: 停止并禁用服务
-print_step "步骤 1/5: 停止并禁用服务"
-
-print_info "停止 shadowsocks-libev 服务..."
-if systemctl is-active --quiet shadowsocks-libev 2>/dev/null; then
-    systemctl stop shadowsocks-libev
-    print_success "shadowsocks-libev 服务已停止"
+# 步骤1: 停止服务
+echo "正在停止 sing-box 服务..."
+if systemctl is-active --quiet sing-box.service; then
+    if systemctl stop sing-box.service; then
+        echo "[OK] 服务已停止"
+    else
+        echo "[WARNING] 停止服务失败，继续卸载..."
+    fi
 else
-    print_info "shadowsocks-libev 服务未运行"
+    echo "[OK] 服务未运行"
 fi
 
-if systemctl is-enabled --quiet shadowsocks-libev 2>/dev/null; then
-    systemctl disable shadowsocks-libev
-    print_success "shadowsocks-libev 服务已禁用"
-fi
-
-print_info "停止 shadowsocks-rust 服务..."
-if systemctl is-active --quiet shadowsocks-rust 2>/dev/null; then
-    systemctl stop shadowsocks-rust
-    print_success "shadowsocks-rust 服务已停止"
+# 步骤2: 禁用服务
+echo "正在禁用 sing-box 服务..."
+if systemctl is-enabled --quiet sing-box.service 2>/dev/null; then
+    if systemctl disable sing-box.service; then
+        echo "[OK] 服务已禁用"
+    else
+        echo "[WARNING] 禁用服务失败，继续卸载..."
+    fi
 else
-    print_info "shadowsocks-rust 服务未运行"
+    echo "[OK] 服务未启用"
 fi
 
-if systemctl is-enabled --quiet shadowsocks-rust 2>/dev/null; then
-    systemctl disable shadowsocks-rust
-    print_success "shadowsocks-rust 服务已禁用"
-fi
-
-echo
-
-# 步骤 2: 删除 systemd 服务文件
-print_step "步骤 2/5: 删除 systemd 服务文件"
-
-if [ -f /etc/systemd/system/shadowsocks-rust.service ]; then
-    rm -f /etc/systemd/system/shadowsocks-rust.service
-    print_success "已删除 shadowsocks-rust.service"
-fi
-
-if [ -f /etc/systemd/system/shadowsocks-libev.service ]; then
-    rm -f /etc/systemd/system/shadowsocks-libev.service
-    print_success "已删除 shadowsocks-libev.service"
-fi
-
-systemctl daemon-reload
-print_success "systemd 配置已重新加载"
-
-echo
-
-# 步骤 3: 卸载软件包和删除二进制文件
-print_step "步骤 3/5: 卸载软件和删除二进制文件"
-
-# 卸载 shadowsocks-libev
-print_info "卸载 shadowsocks-libev..."
-if dpkg -l | grep -q shadowsocks-libev; then
-    apt remove --purge -y shadowsocks-libev
-    print_success "shadowsocks-libev 已卸载"
+# 步骤3: 删除配置文件
+echo "正在删除配置文件..."
+if [ -d "/etc/sing-box" ]; then
+    if rm -rf /etc/sing-box; then
+        echo "[OK] 配置文件已删除"
+    else
+        echo "[ERROR] 删除配置文件失败"
+    fi
 else
-    print_info "shadowsocks-libev 未安装（跳过）"
+    echo "[OK] 配置目录不存在"
 fi
 
-# 删除 shadowsocks-rust 二进制文件
-print_info "删除 shadowsocks-rust 二进制文件..."
-RUST_BINS=(
-    /usr/bin/sslocal
-    /usr/bin/ssserver
-    /usr/bin/ssmanager
-    /usr/bin/ssurl
-    /usr/bin/ssservice
+# 步骤4: 删除证书文件
+echo "正在删除证书文件..."
+cert_files_deleted=0
+if [ -f "/etc/ssl/private/bing.com.key" ]; then
+    rm -f /etc/ssl/private/bing.com.key
+    ((cert_files_deleted++))
+fi
+if [ -f "/etc/ssl/private/bing.com.crt" ]; then
+    rm -f /etc/ssl/private/bing.com.crt
+    ((cert_files_deleted++))
+fi
+
+if [ $cert_files_deleted -gt 0 ]; then
+    echo "[OK] 证书文件已删除 ($cert_files_deleted 个文件)"
+else
+    echo "[OK] 证书文件不存在"
+fi
+
+# 步骤5: 删除 systemd 服务文件
+echo "正在删除 systemd 服务文件..."
+service_files=(
+    "/etc/systemd/system/sing-box.service"
+    "/usr/lib/systemd/system/sing-box.service"
+    "/lib/systemd/system/sing-box.service"
 )
 
-for bin in "${RUST_BINS[@]}"; do
-    if [ -f "$bin" ]; then
-        rm -f "$bin"
-        print_success "已删除 $bin"
+service_deleted=0
+for service_file in "${service_files[@]}"; do
+    if [ -f "$service_file" ]; then
+        if rm -f "$service_file"; then
+            ((service_deleted++))
+        fi
     fi
 done
 
-# 删除 simple-obfs 二进制文件
-print_info "删除 simple-obfs 二进制文件..."
-OBFS_BINS=(
-    /usr/bin/obfs-server
-    /usr/bin/obfs-local
+if [ $service_deleted -gt 0 ]; then
+    systemctl daemon-reload
+    echo "[OK] systemd 服务文件已删除"
+else
+    echo "[OK] systemd 服务文件不存在"
+fi
+
+# 步骤6: 删除 sing-box 二进制文件
+echo "正在删除 sing-box 程序..."
+binary_files=(
+    "/usr/local/bin/sing-box"
+    "/usr/bin/sing-box"
 )
 
-for bin in "${OBFS_BINS[@]}"; do
-    if [ -f "$bin" ]; then
-        rm -f "$bin"
-        print_success "已删除 $bin"
+binary_deleted=0
+for binary_file in "${binary_files[@]}"; do
+    if [ -f "$binary_file" ]; then
+        if rm -f "$binary_file"; then
+            echo "[OK] 已删除: $binary_file"
+            ((binary_deleted++))
+        fi
     fi
 done
 
-echo
-
-# 步骤 4: 删除配置文件和目录
-print_step "步骤 4/5: 删除配置文件和目录"
-
-if [ -d /etc/shadowsocks-libev ]; then
-    rm -rf /etc/shadowsocks-libev
-    print_success "已删除 /etc/shadowsocks-libev"
+if [ $binary_deleted -eq 0 ]; then
+    echo "[OK] sing-box 程序不存在"
 fi
 
-if [ -d /etc/shadowsocks-rust ]; then
-    rm -rf /etc/shadowsocks-rust
-    print_success "已删除 /etc/shadowsocks-rust"
+# 步骤7: 清理日志
+echo "正在清理日志..."
+if journalctl --rotate &>/dev/null && journalctl --vacuum-time=1s -u sing-box &>/dev/null; then
+    echo "[OK] 日志已清理"
+else
+    echo "[WARNING] 日志清理失败或无权限"
 fi
 
-print_success "配置文件已删除"
-
-echo
-
-# 步骤 5: 清理临时文件
-print_step "步骤 5/5: 清理临时文件"
-
-TEMP_FILES=(
-    /tmp/shadowsocks-rust.tar.xz
-    /tmp/simple-obfs.tar.gz
-)
-
-for file in "${TEMP_FILES[@]}"; do
-    if [ -f "$file" ]; then
-        rm -f "$file"
-        print_success "已删除 $file"
+# 步骤8: 检查残留文件
+echo "正在检查残留文件..."
+残留=0
+if [ -d "/var/lib/sing-box" ]; then
+    echo "[WARNING] 发现数据目录: /var/lib/sing-box"
+    if rm -rf /var/lib/sing-box; then
+        echo "[OK] 数据目录已删除"
+    else
+        echo "[ERROR] 删除数据目录失败"
     fi
-done
-
-# 清理 APT 缓存
-print_info "清理 APT 缓存..."
-apt autoremove -y
-apt autoclean
-print_success "APT 缓存清理完成"
-
-echo
-
-# 卸载总结
-print_success "=========================================="
-print_success "卸载完成！"
-print_success "=========================================="
-echo
-
-print_info "已卸载的组件："
-echo "  ✓ shadowsocks-libev"
-echo "  ✓ shadowsocks-rust"
-echo "  ✓ simple-obfs"
-echo "  ✓ systemd 服务文件"
-echo "  ✓ 配置文件目录"
-echo
-
-# 检查是否还有残留
-print_info "检查残留文件..."
-RESIDUAL=false
-
-if command -v ss-server >/dev/null 2>&1; then
-    print_warn "发现残留: ss-server 命令仍然存在"
-    RESIDUAL=true
 fi
 
-if command -v ssserver >/dev/null 2>&1; then
-    print_warn "发现残留: ssserver 命令仍然存在"
-    RESIDUAL=true
+# 最终检查
+echo "========================================="
+echo "正在进行最终检查..."
+
+# 检查服务是否还存在
+if systemctl list-unit-files | grep -q sing-box; then
+    echo "[WARNING] systemd 中仍存在 sing-box 服务"
+    残留=1
 fi
 
-if command -v obfs-server >/dev/null 2>&1; then
-    print_warn "发现残留: obfs-server 命令仍然存在"
-    RESIDUAL=true
+# 检查二进制文件
+if command -v sing-box &> /dev/null; then
+    echo "[WARNING] sing-box 命令仍然可用: $(which sing-box)"
+    残留=1
 fi
 
-if [ "$RESIDUAL" = false ]; then
-    print_success "未发现残留文件"
+# 检查配置目录
+if [ -d "/etc/sing-box" ]; then
+    echo "[WARNING] 配置目录仍然存在: /etc/sing-box"
+    残留=1
 fi
 
-echo
-print_info "如需重新安装，请运行安装脚本"
-print_success "=========================================="
+echo "========================================="
+if [ $残留 -eq 0 ]; then
+    echo "[SUCCESS] sing-box 已完全卸载!"
+else
+    echo "[WARNING] 卸载完成，但检测到部分残留文件"
+    echo "您可以手动检查并清理这些文件"
+fi
+echo "========================================="
