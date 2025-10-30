@@ -167,23 +167,11 @@ if ! mkdir -p /etc/ssl/private; then
     exit 1
 fi
 
-# 生成 ECC 私钥
-if ! openssl ecparam -genkey -name prime256v1 -out /etc/ssl/private/bing.com.key; then
-    echo "[ERROR] 生成私钥失败"
+# 生成自签名证书（一条命令完成）
+if ! openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /etc/ssl/private/bing.com.key -out /etc/ssl/private/bing.com.crt -subj "/CN=bing.com" -days 36500 && chmod 700 /etc/ssl/private && chmod 600 /etc/ssl/private/bing.com.key && chmod 644 /etc/ssl/private/bing.com.crt; then
+    echo "[ERROR] 证书生成或权限设置失败"
     exit 1
 fi
-
-# 生成自签名证书
-if ! openssl req -new -x509 -key /etc/ssl/private/bing.com.key -out /etc/ssl/private/bing.com.crt -subj "/CN=bing.com" -days 36500; then
-    echo "[ERROR] 生成证书失败"
-    rm -f /etc/ssl/private/bing.com.key
-    exit 1
-fi
-
-# 设置正确的权限
-chmod 700 /etc/ssl/private
-chmod 600 /etc/ssl/private/bing.com.key
-chmod 644 /etc/ssl/private/bing.com.crt
 
 echo "[OK] 证书已生成完成"
 
