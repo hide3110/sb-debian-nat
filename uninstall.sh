@@ -53,11 +53,11 @@ echo "正在删除证书文件..."
 cert_files_deleted=0
 if [ -f "/etc/ssl/private/bing.com.key" ]; then
     rm -f /etc/ssl/private/bing.com.key
-    ((cert_files_deleted++))
+    cert_files_deleted=$((cert_files_deleted + 1))
 fi
 if [ -f "/etc/ssl/private/bing.com.crt" ]; then
     rm -f /etc/ssl/private/bing.com.crt
-    ((cert_files_deleted++))
+    cert_files_deleted=$((cert_files_deleted + 1))
 fi
 
 if [ $cert_files_deleted -gt 0 ]; then
@@ -78,7 +78,7 @@ service_deleted=0
 for service_file in "${service_files[@]}"; do
     if [ -f "$service_file" ]; then
         if rm -f "$service_file"; then
-            ((service_deleted++))
+            service_deleted=$((service_deleted + 1))
         fi
     fi
 done
@@ -102,7 +102,7 @@ for binary_file in "${binary_files[@]}"; do
     if [ -f "$binary_file" ]; then
         if rm -f "$binary_file"; then
             echo "[OK] 已删除: $binary_file"
-            ((binary_deleted++))
+            binary_deleted=$((binary_deleted + 1))
         fi
     fi
 done
