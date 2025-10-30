@@ -121,7 +121,7 @@ fi
 
 # 步骤8: 检查残留文件
 echo "正在检查残留文件..."
-残留=0
+has_residual=0
 if [ -d "/var/lib/sing-box" ]; then
     echo "[WARNING] 发现数据目录: /var/lib/sing-box"
     if rm -rf /var/lib/sing-box; then
@@ -138,23 +138,23 @@ echo "正在进行最终检查..."
 # 检查服务是否还存在
 if systemctl list-unit-files | grep -q sing-box; then
     echo "[WARNING] systemd 中仍存在 sing-box 服务"
-    残留=1
+    has_residual=1
 fi
 
 # 检查二进制文件
 if command -v sing-box &> /dev/null; then
     echo "[WARNING] sing-box 命令仍然可用: $(which sing-box)"
-    残留=1
+    has_residual=1
 fi
 
 # 检查配置目录
 if [ -d "/etc/sing-box" ]; then
     echo "[WARNING] 配置目录仍然存在: /etc/sing-box"
-    残留=1
+    has_residual=1
 fi
 
 echo "========================================="
-if [ $残留 -eq 0 ]; then
+if [ $has_residual -eq 0 ]; then
     echo "[SUCCESS] sing-box 已完全卸载!"
 else
     echo "[WARNING] 卸载完成，但检测到部分残留文件"
