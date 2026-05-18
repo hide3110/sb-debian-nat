@@ -17,3 +17,4 @@ TR_PORT=8443 VL_PORT=9443 VL_SNI=www.microsoft.com bash <(curl -fsSL https://raw
 
 - 脚本使用的自签 TLS 证书（用于 Trojan）
 - 此脚本仅安装了Trojan和reality两个协议
+- 默认sing-box版本号为 1.13.12。
